@@ -1,0 +1,2 @@
+eQTL	non-eQTL
+34	39

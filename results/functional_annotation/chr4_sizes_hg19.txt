@@ -1,0 +1,2 @@
+Chromosome	Position
+4	191154276
