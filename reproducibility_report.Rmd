@@ -1,16 +1,17 @@
 ---
 title: "Genetic variants associated with alcohol dependence co-ordinate regulation of *ADH* genes in gastrointestinal and adipose tissues"
-author: "Rebecca Hibberd, Evgeniia Golovina"
+author: "Rebecca Hibberd and Evgeniia Golovina"
 date: "23/01/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE)
 
 # install.packages("pacman")
 # load libraries
-pacman::p_load(ggplot2, ggpubr, viridis, colormap, scales, reshape)
+pacman::p_load(ggplot2, ggpubr, viridis, colormap, scales, reshape, dplyr, tidyr, reshape2,
+               ComplexHeatmap, tibble, circlize)
 ```
 
 This is a reproducibility report for "Genetic variants associated with alcohol dependence co-ordinate regulation of *ADH* genes in gastrointestinal and adipose tissues" study.  
@@ -43,7 +44,7 @@ iii) Assigned numbers to different types of functional annotation as their "Type
 This produced .txt file `results/functional_annotation/eQTL_SNP_grouped.txt`
 iv) Obtained chromosome sizes for hg19 - `results/functional_annotation/chr_sizes_hg19.txt`
 
-```{r functional_annotation, echo=FALSE}
+```{r functional_annotation}
 chrdata <- read.table("results/functional_annotation/chr_sizes_hg19.txt", sep = "\t", header=TRUE)
 eQTLpos<-read.table("results/functional_annotation/eQTL_SNP_grouped.txt", sep = "\t", header=TRUE)
 
@@ -60,11 +61,11 @@ ggplot(chrdata, aes(Chromosome,Position), legend(colors())) +
         axis.ticks.x = element_blank(),
         legend.title = element_blank()) +
   scale_y_continuous(labels = scales::comma) +
-  geom_segment(data=eQTLpos, aes(x=eQTLpos$Chromosome-0.25, 
+  geom_segment(data=eQTLpos, aes(x=Chromosome-0.25, 
                                  xend=Chromosome+0.25, 
-                                 y=eQTLpos$Position-50000, 
-                                 yend=eQTLpos$Position+50000, 
-                                 colour=factor(eQTLpos$Type)), 
+                                 y=Position-50000, 
+                                 yend=Position+50000, 
+                                 colour=factor(Type)), 
                size=0.75) +
   scale_colour_manual(labels=c("intergenic","intronic","exonic","ncRNA intronic","multiple SNPs"),
                       values = c(1,2,3,4,5,"red","red"))
@@ -75,18 +76,18 @@ Then, we plotted positions and functional annotation of the 13 grouped eQTLs (fr
 
 i) assigned functional annotations to numbers: 1= intergenic 2=intronic 3=UTR3 4=exonic 5=ncRNA 6=intronic 7=upstream - `chr4.txt`
 
-```{r chr4, echo=FALSE}
+```{r chr4}
 chr4data <- read.table("results/functional_annotation/chr4_sizes_hg19.txt", sep = "\t", header=TRUE)
 pos4 <- read.table("results/functional_annotation/chr4.txt", sep = "\t", header=TRUE)
 chr4data$Chromosome <- factor(chr4data$Chromosome, levels = chr4data$Chromosome)
 
 #tiff("chr_4_eQTL_SNP_map.tiff", units="in", width=3, height=6, res=300)
 ggplot(pos4, aes(Chromosome, Position)) +
-  geom_segment(data=pos4, aes(x=pos4$Chromosome, 
+  geom_segment(data=pos4, aes(x=Chromosome, 
                               xend=Chromosome, 
-                              y=pos4$Position-100, 
-                              yend=pos4$Position+100, 
-                              colour=factor(pos4$Type)), 
+                              y=Position-100, 
+                              yend=Position+100, 
+                              colour=factor(Type)), 
                size=7) +
   scale_colour_manual(labels=c("intergenic","intronic","UTR3","exonic","ncRNA intronic","upstream"), 
                       values = c(1,2,3,4,5,6,7)) +
@@ -110,7 +111,7 @@ ggplot(pos4, aes(Chromosome, Position)) +
 
 ### 3. Percentage of eQTL vs non-eQTL SNPs.
 
-```{r eQTL_vs_noneQTL, echo=FALSE}
+```{r eQTL_vs_noneQTL}
 counts <- read.table("results/functional_annotation/AD_eQTLs_vs_non.txt", sep = "\t", header=TRUE)
 
 #tiff("eQTLvsnon.tiff", units="in", width=3, height=6, res=300)
@@ -123,7 +124,7 @@ barplot(as.matrix(counts), names.arg=c("eQTL", "non-eQTL"),
 
 Next, we plotted the relationships between the number of significant eQTL-eGene interactions found and the sample size for each tissue: i) for all eQTLs and ii) for just ADH eQTLs
 
-```{r eQTL_vs_sample_size, echo=FALSE}
+```{r eQTL_vs_sample_size}
 #All eQTLs
 data <- read.table("data/snps/ADH_eQTL_data.txt", sep = "\t", header=TRUE)
 
@@ -201,7 +202,7 @@ Gene enrichment and pathway analyses were performed using the g:GOSt module of [
 
 Analysis of linkage disequilibrium (LD) was performed using teh LDmatrix module of the [LDlink](https://ldlink.nci.nih.gov/?tab=home) (version 3.7) tool.
 
-```{r LD_analysis, include=FALSE}
+```{r LD_analysis}
 get_lower_tri<-function(ld_dt){
   ld_dt[upper.tri(ld_dt)] <- NA
   return(ld_dt)
@@ -283,12 +284,8 @@ ggplot(data = lower_ld_melted_r,
 
 ### 7. Tissue-specific *ADH* gene expression and the effect sizes of SNPs impacting *ADH* genes.
 
-```{r ADH_genes, include=FALSE}
-adh.df <- read.delim('data/eGenes/ADH_significant_eQTLs.txt', sep='\t', header=TRUE)
-adh1a <- subset(adh.df, Gene_Name=='ADH1A')
-adh1b <- subset(adh.df, Gene_Name=='ADH1B')
-adh1c <- subset(adh.df, Gene_Name=='ADH1C')
-adh4 <- subset(adh.df, Gene_Name=='ADH4')
+```{r ADH1A, fig.width=10, fig.height=8}
+# ADH gene regulation
 snps <- c('rs2066702','rs904092', 'rs1789882', 'rs1693457', 'rs9307239', 'rs1789891',
           'rs2173201', 'rs1614972', 'rs2241894', 'rs12639833', 'rs1789924', 'rs1826907')
 tissues <- c("Adipose - Subcutaneous", "Adipose - Visceral (Omentum)", "Adrenal Gland",
@@ -301,66 +298,160 @@ tissues <- c("Adipose - Subcutaneous", "Adipose - Visceral (Omentum)", "Adrenal 
              "Pancreas", "Skin - Not Sun Exposed (Suprapubic)", "Skin - Sun Exposed (Lower leg)",
              "Small Intestine - Terminal Ileum", "Spleen", "Thyroid")
 
-adhs.genes <- c('ADH4') #Change this to other ADH genes
+adh.df <- read.delim('data/eGenes/ADH_significant_eQTLs.txt', sep='\t', header=TRUE)
+adh.sub <- subset(adh.df, select=c(SNP, Gene_Name, Tissue, Effect_Size))
+adh1a <- subset(adh.sub, Gene_Name=='ADH1A')
+adh1b <- subset(adh.sub, Gene_Name=='ADH1B')
+adh1c <- subset(adh.sub, Gene_Name=='ADH1C')
+adh4 <- subset(adh.sub, Gene_Name=='ADH4')
 
-data <- setNames(data.frame(matrix(ncol = 3, nrow = length(tissues)*length(snps)*length(adhs.genes))),
-                 c('SNP', 'Gene_Name', 'Tissue'))
-i <- 1
-for(t in tissues){
-  for(s in snps){
-    for(g in adhs.genes){
-       data[i,] <- c(as.character(s), as.character(g), as.character(t))
-       i <- i+1
-    }
+# Plotting ADH1A eQTLs
+adh1a_melt <- melt(adh1a, id=c("SNP", "Tissue"), measure.vars = c("Effect_Size"))
+#unique(adh1a_melt$SNP)
+adh1a_dcast <- dcast(adh1a_melt, Tissue ~ SNP)
+
+i <- c()
+for(s in 1:length(snps)){
+  if(!(snps[s] %in% unique(adh1a_melt$SNP))){
+    i <- c(i , snps[s])
+    #adh1a_dcast$i <- NA
   }
 }
 
-merged <- left_join(data, adh4)
-tissue.test <- function(data){
-  ifelse(data$SNP==adh4$SNP && data$Tissue==adh4$Tissue && data$Gene==adh4$Gene_Name,
-         c(adh4$SNP, adh4$Gene_Name, tissue, adh4$Effect_Size), 
-         c(adh4$SNP, adh4$Gene_Name, tissue,'NA'))
+adh1a_dcast$rs9307239 <- NA; adh1a_dcast$rs2173201 <- NA; adh1a_dcast$rs1614972 <- NA;
+adh1a_dcast$rs2241894 <- NA; adh1a_dcast$rs12639833 <- NA; adh1a_dcast$rs1789924 <- NA
+adh1a_dcast <- remove_rownames(adh1a_dcast) %>% column_to_rownames(var="Tissue")
+adh1a_mat <- as.matrix(adh1a_dcast)
+
+colors = colorRamp2(c(-1,0,1), c('#d7191c','#ffffbf','#1a9641'), space = "RGB")
+
+#pdf("figures/ADH1A_gene_regulation.pdf", width = 16, height = 16)
+adh1a_ht <- Heatmap(adh1a_mat, name = "Effect size",
+                    col = colors, na_col = "white",
+                    cluster_rows = FALSE, cluster_columns = FALSE, row_names_side = "left",
+                    column_names_side = "top", column_order = snps,
+                    width = unit(10, "cm"), height = unit(15, "cm"),
+                    border = TRUE, rect_gp = gpar(col = "grey"),
+                    heatmap_legend_param = list(legend_direction = "horizontal",
+                                                legend_width = unit(5, "cm")))
+draw(adh1a_ht, heatmap_legend_side = "bottom")
+#dev.off()
+```
+
+```{r ADH1B, fig.width=8, fig.height=4}
+# Plotting ADH1B eQTLs
+adh1b_melt <- melt(adh1b, id=c("SNP", "Tissue"), measure.vars = c("Effect_Size"))
+adh1b_dcast <- dcast(adh1b_melt, Tissue ~ SNP)
+i <- c()
+for(s in 1:length(snps)){
+  if(!(snps[s] %in% unique(adh1b_melt$SNP))){
+    i <- c(i , snps[s])
+    #adh1a_dcast$i <- NA
+  }
 }
 
-#jpeg("AD_ADH4.jpeg", units="in", width=6, height=6, res=300)
-ggplot(merged, aes(x=factor(SNP, levels=snps), y=factor(Tissue, levels=rev(tissues))))+
-  geom_tile(aes(fill=Effect_Size))+
-  scale_y_discrete('Tissues')+
-  scale_x_discrete('eQTL SNPs', position = "top")+
-  scale_fill_gradientn('Effect Size', colors = c('#d7191c','#ffffbf','#1a9641'),
-                       na.value = 'transparent',
-                       #low='#fc8d59', mid='#ffffbf', high='#91cf60',
-                       limits=c(-1.0,1.0))+
-  theme_linedraw() +
-  theme(axis.text.x = element_text(angle=90,hjust=1,vjust=0.01),
-        plot.title = element_blank(),
-        axis.title.y = element_blank(),
-        axis.title.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        legend.position = "bottom",
-        legend.direction = "horizontal")
-#dev.off()
+adh1b_dcast$rs2066702 <- NA; adh1b_dcast$rs904092 <- NA; adh1b_dcast$rs1789882 <- NA;
+adh1b_dcast$rs1693457 <- NA; adh1b_dcast$rs9307239 <- NA; adh1b_dcast$rs1789891 <- NA
+adh1b_dcast$rs2173201 <- NA; adh1b_dcast$rs1614972 <- NA; adh1b_dcast$rs2241894 <- NA
+adh1b_dcast$rs12639833 <- NA; adh1b_dcast$rs1789924 <- NA
+adh1b_dcast <- remove_rownames(adh1b_dcast) %>% column_to_rownames(var="Tissue")
+adh1b_mat <- as.matrix(adh1b_dcast)
 
+#pdf("figures/ADH1B_gene_regulation.pdf", width = 16, height = 16)
+adh1b_ht <- Heatmap(adh1b_mat, name = "Effect size",
+                    col = colors, na_col = "white",
+                    cluster_rows = FALSE, cluster_columns = FALSE, row_names_side = "left",
+                    column_names_side = "top", column_order = snps,
+                    width = unit(10, "cm"), height = unit(6, "cm"),
+                    border = TRUE, rect_gp = gpar(col = "grey"),
+                    heatmap_legend_param = list(legend_direction = "horizontal",
+                                                legend_width = unit(5, "cm")))
+draw(adh1b_ht, heatmap_legend_side = "bottom")
+#dev.off()
+```
+
+```{r ADH1C, fig.width=10, fig.height=7}
+# Plotting ADH1C eQTLs
+adh1c_melt <- melt(adh1c, id=c("SNP", "Tissue"), measure.vars = c("Effect_Size"))
+adh1c_dcast <- dcast(adh1c_melt, Tissue ~ SNP)
+i <- c()
+for(s in 1:length(snps)){
+  if(!(snps[s] %in% unique(adh1c_melt$SNP))){
+    i <- c(i , snps[s])
+    #adh1a_dcast$i <- NA
+  }
+}
+
+adh1c_dcast$rs2066702 <- NA; adh1c_dcast$rs904092 <- NA; adh1c_dcast$rs1789882 <- NA;
+adh1c_dcast$rs1693457 <- NA
+adh1c_dcast <- remove_rownames(adh1c_dcast) %>% column_to_rownames(var="Tissue")
+adh1c_mat <- as.matrix(adh1c_dcast)
+
+#pdf("figures/ADH1C_gene_regulation.pdf", width = 16, height = 16)
+adh1c_ht <- Heatmap(adh1c_mat, name = "Effect size",
+                    col = colors, na_col = "white",
+                    cluster_rows = FALSE, cluster_columns = FALSE, row_names_side = "left",
+                    column_names_side = "top", column_order = snps,
+                    width = unit(10, "cm"), height = unit(10, "cm"),
+                    border = TRUE, rect_gp = gpar(col = "grey"),
+                    heatmap_legend_param = list(legend_direction = "horizontal",
+                                                legend_width = unit(5, "cm")))
+draw(adh1c_ht, heatmap_legend_side = "bottom")
+#dev.off()
+```
+
+```{r ADH4, fig.width=8, fig.height=4}
+# Plotting ADH4 eQTLs
+adh4_melt <- melt(adh4, id=c("SNP", "Tissue"), measure.vars = c("Effect_Size"))
+adh4_dcast <- dcast(adh4_melt, Tissue ~ SNP)
+i <- c()
+for(s in 1:length(snps)){
+  if(!(snps[s] %in% unique(adh4_melt$SNP))){
+    i <- c(i , snps[s])
+    #adh1a_dcast$i <- NA
+  }
+}
+
+adh4_dcast$rs2066702 <- NA; adh4_dcast$rs904092 <- NA; adh4_dcast$rs1789882 <- NA;
+adh4_dcast$rs1693457 <- NA; adh4_dcast$rs1789891 <- NA; adh4_dcast$rs1826907 <- NA
+adh4_dcast <- remove_rownames(adh4_dcast) %>% column_to_rownames(var="Tissue")
+adh4_mat <- as.matrix(adh4_dcast)
+
+#pdf("figures/ADH4_gene_regulation.pdf", width = 16, height = 16)
+adh4_ht <- Heatmap(adh4_mat, name = "Effect size",
+                   col = colors, na_col = "white",
+                   cluster_rows = FALSE, cluster_columns = FALSE, row_names_side = "left",
+                   column_names_side = "top", column_order = snps,
+                   width = unit(10, "cm"), height = unit(2, "cm"),
+                   border = TRUE, rect_gp = gpar(col = "grey"),
+                   heatmap_legend_param = list(legend_direction = "horizontal",
+                                               legend_width = unit(5, "cm")))
+draw(adh4_ht, heatmap_legend_side = "bottom")
+#dev.off()
+```
+
+```{r ADH_expression, fig.width=10, fig.height=7}
+# ADH gene expression
 expr.df <- read.delim('data/eGenes/ADH_gene_expression.txt', sep='\t', header=TRUE)
 expr.df <- na.omit(expr.df)
 
-#jpeg("AD_ADH_gene_expression.jpeg", units="in", width=4, height=6, res=300)
-ggplot(expr.df, aes(x=factor(Gene_Name), y=factor(Tissue, levels=rev(tissues)))) +
-  geom_tile(aes(fill=log.TPM.1.))+
-  scale_y_discrete('Tissues')+
-  scale_x_discrete('log(TPM+1)', position = "top")+
-  scale_fill_gradientn('log.TPM.1.', colors = c('#ffffff','#969696','#252525'),
-                       na.value = 'transparent',
-                       #low='#fc8d59', mid='#ffffbf', high='#91cf60',
-                       limits=c(0,1.0))+
-  theme_linedraw() +
-  theme(axis.text.x = element_text(angle=90,hjust=1,vjust=0.01),
-        plot.title = element_blank(),
-        axis.title.y = element_blank(),
-        axis.title.x = element_blank(),
-        legend.position = "bottom",
-        legend.direction = "horizontal")+
-  labs(fill = "log(TPM+1)")
+expr_melt <- melt(expr.df, id=c("Gene_Name", "Tissue"), measure.vars = c("log.TPM.1."))
+expr_dcast <- dcast(expr_melt, Tissue ~ Gene_Name)
+expr_dcast <- remove_rownames(expr_dcast) %>% column_to_rownames(var="Tissue")
+expr_mat <- as.matrix(expr_dcast)
+
+colors = colorRamp2(c(0, max(expr_mat)), c("white","black"), space = "RGB")
+
+#pdf("figures/adh_aldh_gene_expression_heatmap.pdf", width = 16, height = 16)
+ht_ge <- Heatmap(expr_mat, name = "log10(TPM+1)",
+                 col = colors, na_col = "white",
+                 cluster_rows = FALSE, cluster_columns = FALSE, row_names_side = "left",
+                 column_names_side = "top", column_names_gp = gpar(fontface = "italic"),
+                 width = unit(6, "cm"), height = unit(13, "cm"),
+                 border = TRUE, rect_gp = gpar(col = "grey"),
+                 heatmap_legend_param = list(legend_direction = "horizontal",
+                                             legend_width = unit(5, "cm")))
+draw(ht_ge, heatmap_legend_side = "bottom")
 #dev.off()
 ```
 

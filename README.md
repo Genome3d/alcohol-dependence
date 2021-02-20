@@ -4,7 +4,7 @@ This repository contains scripts, data, results, figures and reproducibility rep
 
 Python (version 2.7.15), R (version 3.5.2) and RStudio (version 1.1.463) were used for data processing, analysis and visualisation.  
 
-In this study, we integrate data from multiple sources (i.e. GWAS catalog, GTEx, HaploReg data) to analyze 73 AD associated SNPs and identify 34 expression quantitative loci (eQTL) with potential regulatory roles that impact alcohol dependence. We report that 42% of the 285 significant tissue-specific regulatory interactions we identify were associated with four genes encoding Alcohol Dehydrogenase - *ADH1A*, *ADH1B*, *ADH1C* and *ADH4*. Identified eQTLs produced a coordinated regulatory action between *ADH* genes, especially between *ADH1A* and *ADH1C* within the subcutaneous adipose and gastrointestinal tissues.  
+In this study, we integrate data from multiple sources (i.e. GWAS catalog, Hi-C, GTEx, HaploReg data) to analyze 73 AD associated SNPs and identify 34 expression quantitative loci (eQTL) with potential regulatory roles that impact alcohol dependence. We report that 42% of the 285 significant tissue-specific regulatory interactions we identify were associated with four genes encoding Alcohol Dehydrogenase - *ADH1A*, *ADH1B*, *ADH1C* and *ADH4*. Identified eQTLs produced a coordinated regulatory action between *ADH* genes, especially between *ADH1A* and *ADH1C* within the subcutaneous adipose and gastrointestinal tissues.  
 
 1. Cell type- and tissue-specific Hi-C data is available on [GEO](https://www.ncbi.nlm.nih.gov/geo/) database (accessions: GSE63525, GSE35156, GSE43070, GSE77565, GSE105194, GSE105513, GSE105544, GSE52457, GSE105914, GSE105957, GSE87112).  
 2. RNA-seq and genotyping data (GTEx v7) are available via [dbGaP](https://www.ncbi.nlm.nih.gov/gap/) access (accession: phs000424.v7.p2).  
@@ -16,6 +16,6 @@ In this study, we integrate data from multiple sources (i.e. GWAS catalog, GTEx,
 
 <p>&nbsp;</p>
 
-![*ALDH2* eQTLs associated with bipolar disorder, schizophrenia and cognition are involved in brain-specific trans-interchromosomal upregulatory interactions](figures/figure_1.jpg)
+![Tissue-specific effects of eQTLs](figures/figure_1.jpg)
 Tissue-specific effects of eQTLs for *ADH1A*, *ADH1B*, *ADH1C* and *ADH4* mapped to the human body.
 Red text denotes the SNP upregulates the eGene, whereas blue text denotes downregulation.
