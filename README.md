@@ -13,3 +13,9 @@ In this study, we integrate data from multiple sources (i.e. GWAS catalog, GTEx,
 5. Gene annotation for GENCODE v19 (“gencode.v19.transcripts.patched_contigs.gtf”) was downloaded from https://storage.googleapis.com/gtex_analysis_v7/reference/.  
 6. SNPs associated with alcohol dependence were downloaded from the [GWAS Catalog](www.ebi.ac.uk/gwas/) on 07/12/2018.  
 7. Promoter-enhancer histone marks and affected regulatory motifs were obtained from the [HaploReg](https://pubs.broadinstitute.org/mammals/haploreg/haploreg.php) (version 4.1).  
+
+<p>&nbsp;</p>
+
+![*ALDH2* eQTLs associated with bipolar disorder, schizophrenia and cognition are involved in brain-specific trans-interchromosomal upregulatory interactions](figures/figure_1.jpg)
+Tissue-specific effects of eQTLs for *ADH1A*, *ADH1B*, *ADH1C* and *ADH4* mapped to the human body.
+Red text denotes the SNP upregulates the eGene, whereas blue text denotes downregulation.

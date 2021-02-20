@@ -1,5 +1,5 @@
 ---
-title: "Alcohol Dependence"
+title: "Genetic variants associated with alcohol dependence co-ordinate regulation of *ADH* genes in gastrointestinal and adipose tissues"
 author: "Rebecca Hibberd, Evgeniia Golovina"
 date: "23/01/2020"
 output: html_document
@@ -8,24 +8,34 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-# install.packages
+# install.packages("pacman")
+# load libraries
 pacman::p_load(ggplot2, ggpubr, viridis, colormap, scales, reshape)
-setwd("/Volumes/resmed201800011-foffa/Archive/projects/P4_alcohol_dependence/alcohol-dependence")
 ```
 
-# **Data analysis and Visualisation**
+This is a reproducibility report for "Genetic variants associated with alcohol dependence co-ordinate regulation of *ADH* genes in gastrointestinal and adipose tissues" study.  
 
-## CoDeS3D analysis
+Python (version 2.7.15), R (version 3.5.2) and RStudio (version 1.1.463) were used for data processing, analysis and visualisation.  
 
-The CoDeS3D32 pipeline (https://github.com/Genome3d/codes3d-v1) was used to identify tissue-specific spatial interactions between regulatory regions (marked by SNPs associated with alcohol dependence) and their target genes. 
+1. Cell type- and tissue-specific Hi-C data is available on [GEO](https://www.ncbi.nlm.nih.gov/geo/) database (accessions: GSE63525, GSE35156, GSE43070, GSE77565, GSE105194, GSE105513, GSE105544, GSE52457, GSE105914, GSE105957, GSE87112).  
+2. RNA-seq and genotyping data (GTEx v7) are available via [dbGaP](https://www.ncbi.nlm.nih.gov/gap/) access (accession: phs000424.v7.p2).  
+3. Human genome build hg19 release 75 (GRCh37) (“Homo_sapiens.GRCh37.75.dna.primary_assembly.fa.gz”) was downloaded from ftp://ftp.ensembl.org/pub/release-75/fasta/homo_sapiens/dna/.  
+4. SNP genomic positions were obtained from ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh37p13/.  
+5. Gene annotation for GENCODE v19 (“gencode.v19.transcripts.patched_contigs.gtf”) was downloaded from https://storage.googleapis.com/gtex_analysis_v7/reference/.  
+6. SNPs associated with alcohol dependence were downloaded from the [GWAS Catalog](www.ebi.ac.uk/gwas/) on 07/12/2018.  
+7. Promoter-enhancer histone marks and affected regulatory motifs were obtained from the [HaploReg](https://pubs.broadinstitute.org/mammals/haploreg/haploreg.php) (version 4.1).  
 
-Run `python codes3d.py -i data/snps/73_gwas_alcohol_dependence_snps_2018-11-30_1E-06.txt -o results/codes3d_output/` to get `results/codes3d_output/AD_significant_eqtls.txt` file
+### 1. Identification of significant spatial eQTL SNP-gene interactions using CoDeS3D.
 
-## eQTL SNPs annotation
+The [CoDeS3D](https://github.com/Genome3d/codes3d-v1) pipeline was used to identify tissue-specific spatial interactions between regulatory regions (marked by SNPs associated with alcohol dependence) and their target genes.  
 
-Functional annotation of SNPs was performed using wANNOVAR tool (http://wannovar.wglab.org/)
+First, we run `python codes3d.py -i data/snps/73_gwas_alcohol_dependence_snps_2018-11-30_1E-06.txt -o results/codes3d_output/` to get significant tissue-specific spatial regulatory interactions.
 
-Locations and functional annotations of eQTLs were plotted across the human genome (hg19) **(Supplementary Figure 1a)**:
+### 2. Functional annotation of the eQTL SNPs.
+
+Functional annotation of SNPs was performed using [wANNOVAR](http://wannovar.wglab.org/) tool.
+
+Locations and functional annotations of eQTLs were plotted across the human genome (hg19):
 
 i) extracted eQTL SNPs, position and chromosome from `results/codes3d_output/AD_significant_eqtls.txt`. Removed duplicates. 
 ii) Combined 13 SNPs on Chromosome 4 (positions between 100214164 and 100301126) as a single entry due to close proximity. Position was the calculated average (mean) of all of their positions and assigned functional annotation as "multiple SNPS"
@@ -33,13 +43,13 @@ iii) Assigned numbers to different types of functional annotation as their "Type
 This produced .txt file `results/functional_annotation/eQTL_SNP_grouped.txt`
 iv) Obtained chromosome sizes for hg19 - `results/functional_annotation/chr_sizes_hg19.txt`
 
-```{Genome, echo=FALSE}
+```{r functional_annotation, echo=FALSE}
 chrdata <- read.table("results/functional_annotation/chr_sizes_hg19.txt", sep = "\t", header=TRUE)
 eQTLpos<-read.table("results/functional_annotation/eQTL_SNP_grouped.txt", sep = "\t", header=TRUE)
 
 chrdata$Chromosome <- factor(chrdata$Chromosome, levels = chrdata$Chromosome)
 
-tiff("eQTL_SNP_map.tiff", units="in", width=12, height=6, res=300)
+#tiff("eQTL_SNP_map.tiff", units="in", width=12, height=6, res=300)
 ggplot(chrdata, aes(Chromosome,Position), legend(colors())) +
   geom_bar(stat="identity", fill = "grey70", width = 0.5) +
   theme(panel.grid.major = element_blank(),
@@ -58,19 +68,19 @@ ggplot(chrdata, aes(Chromosome,Position), legend(colors())) +
                size=0.75) +
   scale_colour_manual(labels=c("intergenic","intronic","exonic","ncRNA intronic","multiple SNPs"),
                       values = c(1,2,3,4,5,"red","red"))
-dev.off()
+#dev.off()
 ```
 
-Plotted positions and functional annotation of the 13 grouped eQTLs (from the previous plot) on chr4 **(Supplementary Figure 1b)**:
+Then, we plotted positions and functional annotation of the 13 grouped eQTLs (from the previous plot) on chr4:
 
 i) assigned functional annotations to numbers: 1= intergenic 2=intronic 3=UTR3 4=exonic 5=ncRNA 6=intronic 7=upstream - `chr4.txt`
 
-```{Chr4, echo=FALSE}
+```{r chr4, echo=FALSE}
 chr4data <- read.table("results/functional_annotation/chr4_sizes_hg19.txt", sep = "\t", header=TRUE)
 pos4 <- read.table("results/functional_annotation/chr4.txt", sep = "\t", header=TRUE)
 chr4data$Chromosome <- factor(chr4data$Chromosome, levels = chr4data$Chromosome)
 
-tiff("chr_4_eQTL_SNP_map.tiff", units="in", width=3, height=6, res=300)
+#tiff("chr_4_eQTL_SNP_map.tiff", units="in", width=3, height=6, res=300)
 ggplot(pos4, aes(Chromosome, Position)) +
   geom_segment(data=pos4, aes(x=pos4$Chromosome, 
                               xend=Chromosome, 
@@ -95,28 +105,30 @@ ggplot(pos4, aes(Chromosome, Position)) +
                      limits = c(100210000,100310000)) +
   scale_x_discrete() +
   guides(colour = guide_legend(override.aes = list(size=1)))
-dev.off()
+#dev.off()
 ```
 
-Checked eQTL vs non-eQTL SNPs **(Supplementary Figure 1c)**:
+### 3. Percentage of eQTL vs non-eQTL SNPs.
 
-```{eQTL vs non, echo=FALSE}
-counts<- read.table("results/functional_annotation/AD_eQTLs_vs_non.txt", sep = "\t", header=TRUE)
+```{r eQTL_vs_noneQTL, echo=FALSE}
+counts <- read.table("results/functional_annotation/AD_eQTLs_vs_non.txt", sep = "\t", header=TRUE)
 
-tiff("eQTLvsnon.tiff", units="in", width=3, height=6, res=300)
+#tiff("eQTLvsnon.tiff", units="in", width=3, height=6, res=300)
 barplot(as.matrix(counts), names.arg=c("eQTL", "non-eQTL"), 
         ylab = "Number of SNPs", ylim = c(0,40), col=c("grey70"))
-dev.off()
+#dev.off()
 ```
 
-Plotted number of eQTLs vs Sample Size from GTEx for each tissue: i) for all eQTLs and ii) for just ADH eQTLs **(Supplementary Figure 2)**
+### 4. Correlation analysis between number of eQTL-eGene interactions and tissue sample size.
 
-```{eQTL vs sample size, echo=FALSE}
+Next, we plotted the relationships between the number of significant eQTL-eGene interactions found and the sample size for each tissue: i) for all eQTLs and ii) for just ADH eQTLs
+
+```{r eQTL_vs_sample_size, echo=FALSE}
 #All eQTLs
 data <- read.table("data/snps/ADH_eQTL_data.txt", sep = "\t", header=TRUE)
 
 #plot no labels
-tiff("all eQTLs (no labels).tiff", units="in", width=6, height=6, res=300)
+#tiff("all eQTLs (no labels).tiff", units="in", width=6, height=6, res=300)
 ggplot(data, aes(x= sample_size, y=number_of_eQTLs)) + 
   geom_point(size = 2.5, color="#701e7fff") + 
   geom_smooth(method=lm, se=T, linetype="solid", size=0.4, color="#701e7fff") +
@@ -128,27 +140,27 @@ ggplot(data, aes(x= sample_size, y=number_of_eQTLs)) +
         axis.text=element_text(size=19, color = "black"),
         axis.title=element_text(size=20, color = "black")) +
   stat_cor(method = "pearson", size=8)
-dev.off()
+#dev.off()
 
 #adding labels for some data points
-tiff("all eQTLs - labelled.tiff", units="in", width=6, height=6, res=300)
+#tiff("all eQTLs - labelled.tiff", units="in", width=6, height=6, res=300)
 ggplot(data, aes(x= sample_size, y=number_of_eQTLs, label=tissue_name)) + 
   geom_point(size = 2.5, color="#701e7fff") + 
   geom_text(data=subset(data, (sample_size > 365 & number_of_eQTLs < 12) | number_of_eQTLs > 16|(number_of_ADH_eQTLs==0 & sample_size==153)),nudge_y=-0.5, size=3.5) +
   geom_smooth(method=lm, se=T, linetype="solid", size=0.4, color="#701e7fff") +
   theme_classic() + 
-  scale_x_continuous(name="Sample size", limits=as.numeric(c(NA,530))) + # Number of samples in GTEx tissues
+  scale_x_continuous(name="Sample size", limits=as.numeric(c(NA,530))) +
   scale_y_continuous(name="Number of eQTL-eGene interactions") +
   theme(plot.title = element_blank(),
         legend.text = element_text(size=17),
         axis.text=element_text(size=19, color = "black"),
         axis.title=element_text(size=19, color = "black")) +
   stat_cor(method = "pearson", size=6, label.y = 23)
-dev.off()
+#dev.off()
 
 #ADH only plot 
 #no labels
-tiff("ADH (no labels).tiff", units="in", width=6, height=6, res=300)
+#tiff("ADH (no labels).tiff", units="in", width=6, height=6, res=300)
 ggplot(data, aes(x= sample_size, y=number_of_ADH_eQTLs)) + 
   geom_point(size = 2.5, color="#701e7fff") + 
   geom_smooth(method=lm, se=T, linetype="solid", size=0.4, color="#701e7fff") +
@@ -161,10 +173,10 @@ ggplot(data, aes(x= sample_size, y=number_of_ADH_eQTLs)) +
         axis.text=element_text(size=19, color = "black"),
         axis.title=element_text(size=20, color = "black")) +
   stat_cor(method = "pearson", size=8, label.y = 15)
-dev.off()
+#dev.off()
 
 #with specfic labels
-tiff("ADH - labelled.tiff", units="in", width=6, height=6, res=300)
+#tiff("ADH - labelled.tiff", units="in", width=6, height=6, res=300)
 ggplot(data, aes(x= sample_size, y=number_of_ADH_eQTLs, label=tissue_name)) + 
   geom_point(size = 2.5, color="#701e7fff") + 
   geom_text(data=subset(data, (sample_size > 250 & number_of_ADH_eQTLs < 3) | number_of_ADH_eQTLs > 10 |(number_of_ADH_eQTLs==0 & sample_size==153)),
@@ -178,18 +190,18 @@ ggplot(data, aes(x= sample_size, y=number_of_ADH_eQTLs, label=tissue_name)) +
         axis.text=element_text(size=19, color = "black"),
         axis.title=element_text(size=19, color = "black")) +
   stat_cor(method = "pearson", size=6, label.x = 80, label.y = 13)
-dev.off()
+#dev.off()
 ```
 
-## Gene Ontology and Pathway Analyses
+### 5. Gene Ontology and Pathway Analyses
 
-Gene enrichment and pathway analyses were performed using g:Profiler43 (the g:GOSt module) (https://biit.cs.ut.ee/gprofiler/). 
+Gene enrichment and pathway analyses were performed using the g:GOSt module of [g:Profiler](https://biit.cs.ut.ee/gprofiler/). 
 
-## LD analysis
+### 6. LD analysis
 
-Analysis of linkage disequilibrium (LD) was performed using LDlink 3.7. **(Supplementary Figure 4a)**
+Analysis of linkage disequilibrium (LD) was performed using teh LDmatrix module of the [LDlink](https://ldlink.nci.nih.gov/?tab=home) (version 3.7) tool.
 
-```{LD analysis, include=FALSE}
+```{r LD_analysis, include=FALSE}
 get_lower_tri<-function(ld_dt){
   ld_dt[upper.tri(ld_dt)] <- NA
   return(ld_dt)
@@ -200,9 +212,9 @@ get_upper_tri<-function(ld_dt){
   return(ld_dt)
 }
 
-## SNPs on Chr3
-snps <- c('rs904092', 'rs1789882', 'rs1693457', 'rs9307239', 'rs1789891',
-          'rs2173201', 'rs1614972', 'rs2241894', 'rs12639833', 'rs1789924', 'rs1826907')
+## SNPs on chr3
+snps <- c('rs904092', 'rs1789882', 'rs1693457', 'rs9307239', 'rs1789891', 'rs2173201', 'rs1614972',
+          'rs2241894', 'rs12639833', 'rs1789924', 'rs1826907')
 
 # R2
 # No LD info for rs2066702 --> removed from the analysis
@@ -211,8 +223,7 @@ lower_tri_r <- get_lower_tri(ld_data_r)
 snps_sorted <- lower_tri_r$RS_number
 lower_ld_melted_r <- melt(lower_tri_r, na.rm = F)
 
-#tiff("AD_LD_R2.tiff", units="in", width=8, height=8, res=300)
-jpeg("AD_LD_R2.jpeg", units="in", width=8, height=8, res=300)
+#jpeg("AD_LD_R2.jpeg", units="in", width=8, height=8, res=300)
 ggplot(data = lower_ld_melted_r, 
        aes(y=factor(RS_number, levels=lower_tri_r$RS_number), x=variable,
            fill=value)) +
@@ -225,7 +236,7 @@ ggplot(data = lower_ld_melted_r,
   theme(axis.text.x = element_text(angle = 90),
         legend.position = "none") +
   coord_fixed()
-dev.off()
+#dev.off()
 
 # D'
 # No LD info for rs2066702 --> removed from the analysis
@@ -234,8 +245,7 @@ upper_tri_d <- get_upper_tri(ld_data_d)
 upper_tri_d$RS_number <- snps_sorted
 upper_ld_melted_d <- melt(upper_tri_d, na.rm = TRUE)
 
-#tiff("AD_LD_D.tiff", units="in", width=8, height=8, res=300)
-jpeg("AD_LD_D.jpeg", units="in", width=8, height=8, res=300)
+#jpeg("AD_LD_D.jpeg", units="in", width=8, height=8, res=300)
 ggplot(data = upper_ld_melted_d,
        aes(y=factor(RS_number, levels=upper_tri_d$RS_number), x=variable,
            fill=value)) + 
@@ -248,15 +258,14 @@ ggplot(data = upper_ld_melted_d,
   theme(axis.text.x = element_text(angle=90),
         legend.position = "none") +
   coord_fixed()
-dev.off()
+#dev.off()
 
 ld_data_r <- read.delim("results/LD/d_prime_12388_new.txt", header = T)
 lower_tri_r <- get_lower_tri(ld_data_r)
 snps_sorted <- lower_tri_r$RS_number
 lower_ld_melted_r <- melt(lower_tri_r, na.rm = F)
 
-#tiff("AD_LD_D.tiff", units="in", width=8, height=8, res=300)
-jpeg("AD_LD_D.jpeg", units="in", width=8, height=8, res=300)
+#jpeg("AD_LD_D.jpeg", units="in", width=8, height=8, res=300)
 ggplot(data = lower_ld_melted_r, 
        aes(y=factor(RS_number, levels=lower_tri_r$RS_number), x=variable,
            fill=value)) +
@@ -269,12 +278,12 @@ ggplot(data = lower_ld_melted_r,
   theme(axis.text.x = element_text(angle = 90),
         legend.position = "none") +
   coord_fixed()
-dev.off()
+#dev.off()
 ```
 
-### 2. ADH genes (tissue-specific effect sizes and gene expression). **(Supplementary Figure 4b)**
+### 7. Tissue-specific *ADH* gene expression and the effect sizes of SNPs impacting *ADH* genes.
 
-```{ADH genes, include=FALSE}
+```{r ADH_genes, include=FALSE}
 adh.df <- read.delim('data/eGenes/ADH_significant_eQTLs.txt', sep='\t', header=TRUE)
 adh1a <- subset(adh.df, Gene_Name=='ADH1A')
 adh1b <- subset(adh.df, Gene_Name=='ADH1B')
@@ -282,8 +291,6 @@ adh1c <- subset(adh.df, Gene_Name=='ADH1C')
 adh4 <- subset(adh.df, Gene_Name=='ADH4')
 snps <- c('rs2066702','rs904092', 'rs1789882', 'rs1693457', 'rs9307239', 'rs1789891',
           'rs2173201', 'rs1614972', 'rs2241894', 'rs12639833', 'rs1789924', 'rs1826907')
-#snps <- c('rs12639833', 'rs1614972', 'rs1693457', 'rs1789882', 'rs1789891', 'rs1789924',
-#          'rs1826907', 'rs2066702', 'rs2173201', 'rs2241894', 'rs904092', 'rs9307239')
 tissues <- c("Adipose - Subcutaneous", "Adipose - Visceral (Omentum)", "Adrenal Gland",
              "Artery - Aorta", "Artery - Tibial", "Brain - Caudate (basal ganglia)",
              "Breast - Mammary Tissue", "Cells - Transformed fibroblasts", 
@@ -294,29 +301,10 @@ tissues <- c("Adipose - Subcutaneous", "Adipose - Visceral (Omentum)", "Adrenal 
              "Pancreas", "Skin - Not Sun Exposed (Suprapubic)", "Skin - Sun Exposed (Lower leg)",
              "Small Intestine - Terminal Ileum", "Spleen", "Thyroid")
 
-### All GTEx tissues
-#tissues <- c('Adipose - Subcutaneous', 'Adipose - Visceral (Omentum)', 'Artery - Aorta', 
-#             'Artery - Coronary', 'Artery - Tibial', 'Heart - Atrial Appendage', 
-#             'Heart - Left Ventricle', 'Whole Blood', 'Colon - Sigmoid', 'Colon - Transverse',
-#             'Esophagus - Gastroesophageal Junction', 'Esophagus - Mucosa', 
-#             'Esophagus - Muscularis', 'Liver', 'Small Intestine - Terminal Ileum', 'Stomach',
-#             'Adrenal Gland', 'Pancreas', 'Pituitary', 'Thyroid', 'Breast - Mammary Tissue', 
-#             'Minor Salivary Gland', 'Skin - Not Sun Exposed (Suprapubic)', 
-#             'Skin - Sun Exposed (Lower leg)', 'Spleen', 'Muscle - Skeletal', 'Brain - Amygdala',
-#             'Brain - Anterior cingulate cortex (BA24)', 'Brain - Caudate (basal ganglia)',
-#             'Brain - Cerebellar Hemisphere', 'Brain - Cerebellum', 'Brain - Cortex',
-#             'Brain - Frontal Cortex (BA9)', 'Brain - Hippocampus', 'Brain - Hypothalamus',
-#             'Brain - Nucleus accumbens (basal ganglia)', 'Brain - Putamen (basal ganglia)',
-#             'Brain - Spinal cord (cervical c-1)', 'Brain - Substantia nigra', 'Nerve - Tibial',
-#             'Ovary', 'Prostate', 'Testis', 'Uterus', 'Vagina', 'Lung', 
-#             'Cells - EBV-transformed lymphocytes', 'Cells - Transformed fibroblasts')
-
-#adhs.genes <- c('ADH1A', 'ADH1B', 'ADH1C', 'ADH4')
 adhs.genes <- c('ADH4') #Change this to other ADH genes
 
-data <- setNames(data.frame(matrix(ncol = 3, 
-                                   nrow = length(tissues)*length(snps)*length(adhs.genes))
-                            ), c('SNP', 'Gene_Name', 'Tissue'))
+data <- setNames(data.frame(matrix(ncol = 3, nrow = length(tissues)*length(snps)*length(adhs.genes))),
+                 c('SNP', 'Gene_Name', 'Tissue'))
 i <- 1
 for(t in tissues){
   for(s in snps){
@@ -324,7 +312,6 @@ for(t in tissues){
        data[i,] <- c(as.character(s), as.character(g), as.character(t))
        i <- i+1
     }
-   
   }
 }
 
@@ -335,8 +322,7 @@ tissue.test <- function(data){
          c(adh4$SNP, adh4$Gene_Name, tissue,'NA'))
 }
 
-#tiff("AD_ADH1A.tiff", units="in", width=6, height=6, res=300)
-jpeg("AD_ADH4.jpeg", units="in", width=6, height=6, res=300)
+#jpeg("AD_ADH4.jpeg", units="in", width=6, height=6, res=300)
 ggplot(merged, aes(x=factor(SNP, levels=snps), y=factor(Tissue, levels=rev(tissues))))+
   geom_tile(aes(fill=Effect_Size))+
   scale_y_discrete('Tissues')+
@@ -346,23 +332,19 @@ ggplot(merged, aes(x=factor(SNP, levels=snps), y=factor(Tissue, levels=rev(tissu
                        #low='#fc8d59', mid='#ffffbf', high='#91cf60',
                        limits=c(-1.0,1.0))+
   theme_linedraw() +
-  #theme_grey() +
   theme(axis.text.x = element_text(angle=90,hjust=1,vjust=0.01),
         plot.title = element_blank(),
         axis.title.y = element_blank(),
         axis.title.x = element_blank(),
         axis.ticks.y = element_blank(),
         legend.position = "bottom",
-        legend.direction = "horizontal")#+
-  #facet_grid(. ~ Gene_Name)#+
-  #facet_grid(rows = vars(Gene_Name))
-dev.off()
+        legend.direction = "horizontal")
+#dev.off()
 
 expr.df <- read.delim('data/eGenes/ADH_gene_expression.txt', sep='\t', header=TRUE)
 expr.df <- na.omit(expr.df)
 
-#tiff("AD_ADH_gene_expression.tiff", units="in", width=6, height=6, res=300)
-jpeg("AD_ADH_gene_expression.jpeg", units="in", width=4, height=6, res=300)
+#jpeg("AD_ADH_gene_expression.jpeg", units="in", width=4, height=6, res=300)
 ggplot(expr.df, aes(x=factor(Gene_Name), y=factor(Tissue, levels=rev(tissues)))) +
   geom_tile(aes(fill=log.TPM.1.))+
   scale_y_discrete('Tissues')+
@@ -372,7 +354,6 @@ ggplot(expr.df, aes(x=factor(Gene_Name), y=factor(Tissue, levels=rev(tissues))))
                        #low='#fc8d59', mid='#ffffbf', high='#91cf60',
                        limits=c(0,1.0))+
   theme_linedraw() +
-  #theme_grey() +
   theme(axis.text.x = element_text(angle=90,hjust=1,vjust=0.01),
         plot.title = element_blank(),
         axis.title.y = element_blank(),
@@ -380,11 +361,9 @@ ggplot(expr.df, aes(x=factor(Gene_Name), y=factor(Tissue, levels=rev(tissues))))
         legend.position = "bottom",
         legend.direction = "horizontal")+
   labs(fill = "log(TPM+1)")
-dev.off()
+#dev.off()
 ```
 
-## Regulatory annotation of ADH SNPs
+### 8. Regulatory annotation of *ADH* SNPs
 
-Promoter-enhancer histone marks and affected regulatory motifs were obtained from the HaploReg website (v4.1) 
-
-**Figure 1,2,3 and Supplementary Figure 3 were all designed manually in Microsoft PowerPoint**
+Promoter-enhancer histone marks and affected regulatory motifs were obtained from the [HaploReg](https://pubs.broadinstitute.org/mammals/haploreg/haploreg.php) website (version 4.1). 
